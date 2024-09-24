@@ -1,0 +1,244 @@
+unit untCadProduto;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Buttons, Mask, StrUtils, DB, ADODB;
+
+type
+  TfrmCadProduto = class(TForm)
+    lblCodigo: TLabel;
+    edtCodigo: TEdit;
+    lblNome: TLabel;
+    edtNome: TEdit;
+    chkAtivo: TCheckBox;
+    lblCadastro: TLabel;
+    lblDescricao: TLabel;
+    medtDtCadastro: TMaskEdit;
+    mmoDescricao: TMemo;
+    btnSalvar: TBitBtn;
+    btnCancelar: TBitBtn;
+    lblQTD: TLabel;
+    edtQtd: TEdit;
+    lblValor: TLabel;
+    medtValor: TMaskEdit;
+    btnFechar: TBitBtn;
+    procedure btnSalvarClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure btnCancelarClick(Sender: TObject);
+    procedure btnFecharClick(Sender: TObject);
+    procedure edtQtdKeyPress(Sender: TObject; var Key: Char);
+  private
+    { Private declarations }
+    procedure prcIncluirProduto;
+    procedure prcAlterarProduto;
+    procedure prcBuscarProduto;
+
+  public
+    { Public declarations }
+    sTpCadastro : string; //Tipo de cadastro I -> Incluição e A -> Alteração
+    sCodigo     : string;
+
+    procedure prcLimparCampos;
+  end;
+
+var
+  frmCadProduto: TfrmCadProduto;
+
+implementation
+
+uses DM;
+
+{$R *.dfm}
+
+procedure TfrmCadProduto.prcLimparCampos;
+begin
+  edtCodigo.Clear;
+  edtNome.Clear;
+  mmoDescricao.Clear;
+  medtDtCadastro.Clear;
+  edtQtd.Clear;
+  medtValor.Clear;
+  chkAtivo.Checked := True;
+end;
+
+procedure TfrmCadProduto.btnSalvarClick(Sender: TObject);
+begin
+  //validar campos
+  if Trim(edtNome.Text) = '' then
+  begin
+    ShowMessage('Informe o nome do Produto.');
+    edtNome.SetFocus;
+    Abort;
+  end;
+
+  if Trim(edtQtd.Text) = '' then
+  begin
+    ShowMessage('Informe a quantidade do produto');
+    edtQtd.SetFocus;
+    Abort;
+  end;
+
+  if StrToInt(edtQtd.Text) = 0 then
+  begin
+    ShowMessage('Informe a quantidade maior que zero');
+    edtQtd.SetFocus;
+    Abort;
+  end;
+
+  if Trim(medtValor.Text) = '.' then
+  begin
+    ShowMessage('Informe o Valor');
+    medtValor.SetFocus;
+    Abort;
+  end;
+
+  //aqui gravo na tabela
+  if sTpCadastro = 'I' then
+  begin
+    prcIncluirProduto;
+  end
+  else if sTpCadastro = 'A' then
+  begin
+    prcAlterarProduto;
+  end;
+end;
+
+procedure TfrmCadProduto.prcIncluirProduto;
+begin
+  try
+    with DMPrincipal.qrySQL do
+    begin
+      Close;
+      SQL.Clear;
+
+      //aqui pego o codigo
+      SQL.Add('select COALESCE(MAX(cod_produto), 0) + 1 AS CODIGO from TAB_PRODUTO');
+      Open;
+      edtCodigo.Text := FieldByName('CODIGO').AsString;
+
+      Close;
+      SQL.Clear;
+      //aqui começo o insert
+      SQL.Add('insert into TAB_PRODUTO (cod_Produto, nm_Produto, ds_Produto, qt_Produto, vl_Produto, ck_Ativo, dt_Cadastro)');
+      SQL.Add('values (');
+      SQL.Add(edtCodigo.Text                + ',');
+      SQL.Add(QuotedStr(Trim(edtNome.Text)) + ',');
+      SQL.Add(QuotedStr(mmoDescricao.Text)  + ',');
+      SQL.Add(edtQtd.Text                   + ',');
+      SQL.Add(medtValor.Text                + ',');
+      SQL.Add(QuotedStr(IfThen(chkAtivo.Checked, 'S', 'N')) + ',');
+      SQL.Add(QuotedStr(FormatDateTime('dd/mm/aaaa', StrToDate(medtDtCadastro.Text))));
+      SQL.Add(')');
+
+      ExecSQL;
+    end;
+
+    ShowMessage('Produto: ' + edtNome.Text + ' foi incluso com sucesso.');
+    prcLimparCampos;
+  except
+    on E: Exception do
+    begin
+      ShowMessage('Erro ao fazer a incluir o produto. ' + E.Message);
+    end;
+  end;
+end;
+
+procedure TfrmCadProduto.prcAlterarProduto;
+begin
+  try
+    with DMPrincipal.qrySQL do
+    begin
+      Close;
+      SQL.Clear;
+
+      //aqui pego o codigo
+      SQL.Add('select COALESCE(MAX(cod_produto), 0) + 1 AS CODIGO from TAB_PRODUTO');
+      Open;
+      edtCodigo.Text := FieldByName('CODIGO').AsString;
+
+      Close;
+      SQL.Clear;
+      //aqui começo o update (alterar o produto)
+      SQL.Add('update TAB_PRODUTO');
+      SQL.Add('   set nm_Produto = ' + QuotedStr(Trim(edtNome.Text)) + ',');
+      SQL.Add('       ds_Produto = ' + QuotedStr(mmoDescricao.Text)  + ',');
+      SQL.Add('       qt_Produto = ' + edtQtd.Text                   + ',');
+      SQL.Add('       vl_Produto = ' + medtValor.Text                + ',');
+      SQL.Add('       ck_Ativo   = ' + QuotedStr(IfThen(chkAtivo.Checked, 'S', 'N')));
+      SQL.Add('where cod_Produto = ' + edtCodigo.Text);
+
+      ExecSQL;
+    end;
+
+    ShowMessage('Produto: ' + edtNome.Text + ' foi alterado com sucesso.');
+  except
+    on E: Exception do
+    begin
+      ShowMessage('Erro ao fazer a alteração do produto. ' + E.Message);
+    end;
+  end;
+end;
+
+procedure TfrmCadProduto.FormShow(Sender: TObject);
+begin
+  //aqui vou ver registro para preencher a tela
+  if sTpCadastro = 'I' then
+  begin
+    medtDtCadastro.Text := FormatDateTime('dd/mm/yyyy', Date());
+  end
+  else
+  begin
+    prcBuscarProduto;
+  end;
+
+  edtNome.SetFocus;
+end;
+
+procedure TfrmCadProduto.prcBuscarProduto;
+begin
+  with DMPrincipal.qrySQL do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('select nm_Produto, ds_Produto, ck_Ativo, dt_Cadastro, qt_Produto, vl_Produto');
+    SQL.Add('  from TAB_PRODUTO');
+    SQL.Add(' where cod_Produto = ' + edtCodigo.Text);
+
+    Open;
+
+    edtNome.Text        := FieldByName('nm_Produto').asString;
+    mmoDescricao.Text   := FieldByName('ds_Produto').asString;
+    chkAtivo.Checked    := FieldByName('ck_Ativo').asString = 'S';
+    medtDtCadastro.Text := FormatDateTime('dd/mm/yyyy', FieldByName('dt_Cadastro').AsDateTime);
+    edtQtd.Text         := FieldByName('qt_Produto').asString;
+    medtValor.Text      := FieldByName('vl_Produto').asString;
+  end;
+end;
+
+procedure TfrmCadProduto.btnCancelarClick(Sender: TObject);
+begin
+  prcLimparCampos;
+
+  if sTpCadastro = 'A' then
+  begin
+    edtCodigo.Text := sCodigo;
+    prcBuscarProduto;
+  end;
+end;
+
+procedure TfrmCadProduto.btnFecharClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfrmCadProduto.edtQtdKeyPress(Sender: TObject; var Key: Char);
+begin
+  if not (Key in ['0'..'9', Chr(8), Chr(9), Chr(13)]) then
+  begin
+    Key := #0;
+  end;
+end;
+
+end.

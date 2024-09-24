@@ -1,0 +1,66 @@
+object DMPrincipal: TDMPrincipal
+  OldCreateOrder = False
+  Left = 342
+  Top = 195
+  Height = 275
+  Width = 353
+  object con: TADOConnection
+    Connected = True
+    ConnectionString = 
+      'Provider=MSDASQL.1;Persist Security Info=False;User ID=root;Data' +
+      ' Source=myodbc'
+    DefaultDatabase = 'registro'
+    Left = 8
+    Top = 32
+  end
+  object qryGridProduto: TADOQuery
+    Connection = con
+    Parameters = <>
+    SQL.Strings = (
+      'select *'
+      '  from TAB_PRODUTO')
+    Left = 64
+    Top = 40
+    object qryGridProdutocod_Produto: TIntegerField
+      FieldName = 'cod_Produto'
+    end
+    object qryGridProdutonm_produto: TStringField
+      FieldName = 'nm_produto'
+      Size = 100
+    end
+    object qryGridProdutock_ativo: TStringField
+      FieldName = 'ck_ativo'
+      FixedChar = True
+      Size = 1
+    end
+    object qryGridProdutodt_cadastro: TDateField
+      FieldName = 'dt_cadastro'
+    end
+    object qryGridProdutods_produto: TStringField
+      FieldName = 'ds_produto'
+      Size = 150
+    end
+    object qryGridProdutoQT_PRODUTO: TIntegerField
+      FieldName = 'QT_PRODUTO'
+    end
+    object qryGridProdutoVL_PRODUTO: TFloatField
+      FieldName = 'VL_PRODUTO'
+    end
+  end
+  object dsGridProduto: TDataSource
+    DataSet = qryGridProduto
+    Left = 40
+    Top = 96
+  end
+  object qrySQL: TADOQuery
+    Connection = con
+    Parameters = <>
+    Left = 232
+    Top = 128
+  end
+  object dsSQL: TDataSource
+    DataSet = qrySQL
+    Left = 224
+    Top = 80
+  end
+end
